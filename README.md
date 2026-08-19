@@ -4,80 +4,116 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>$NOTBOT Reclaimer</title>
+    <!-- مكتبة تيليجرام الرسمية للتحكم بالمتصفح الداخلي -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0d1117;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0b0e14;
             color: #ffffff;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
-            text-align: center;
+            padding: 15px;
+            box-sizing: border-box;
         }
-        .container {
-            background: #161b22;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            border: 1px solid #30363d;
-            width: 90%;
-            max-width: 400px;
-        }
-        h1 { color: #58a6ff; }
-        button {
-            background-color: #238636;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-top: 20px;
+        .card {
+            background: #151a23;
+            border: 1px solid #232d3f;
+            border-radius: 16px;
+            padding: 24px;
             width: 100%;
+            max-width: 380px;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
         }
-        button:hover { background-color: #2ea043; }
-        #status { margin-top: 20px; font-size: 14px; color: #8b949e; }
+        h2 { margin: 0 0 10px; font-size: 20px; color: #38bdf8; }
+        p { color: #94a3b8; font-size: 13px; line-height: 1.5; margin-bottom: 20px; }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            box-sizing: border-box;
+        }
+        .btn-connect { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; }
+        .btn-phantom { background: #ab9ff2; color: #1a1b23; }
+        .status-box {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #0b0e14;
+            font-size: 12px;
+            color: #64748b;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>$NOTBOT Reclaimer</h1>
-    <p>Unlock trapped SOL from empty accounts instantly.</p>
-    <button id="connectBtn">Connect Wallet</button>
-    <div id="status">Waiting for connection...</div>
+<div class="card">
+    <h2>🤖 $NOTBOT Reclaimer</h2>
+    <p>Connect your Solana wallet to scan and reclaim locked SOL rent.</p>
+
+    <!-- زر الاتصال المباشر (للكمبيوتر أو المتصفح الداخلي للفانتوم) -->
+    <button class="btn btn-connect" id="directConnect">⚡ Direct Connect</button>
+
+    <!-- زر التحويل المباشر لفتح التطبيق داخل فانتوم -->
+    <button class="btn btn-phantom" id="openPhantom">🟣 Open in Phantom App</button>
+
+    <div class="status-box" id="statusLog">Ready to connect...</div>
 </div>
 
 <script>
-    const connectBtn = document.getElementById('connectBtn');
-    const statusDiv = document.getElementById('status');
+    const directBtn = document.getElementById('directConnect');
+    const phantomBtn = document.getElementById('openPhantom');
+    const statusLog = document.getElementById('statusLog');
 
-    async function connectWallet() {
-        // 1. التحقق إذا كانت المحفظة مثبته في المتصفح الحالي (حالة الكمبيوتر أو متصفح فانتوم)
-        if (window.solana && window.solana.isPhantom) {
-            try {
-                const resp = await window.solana.connect();
-                statusDiv.innerText = "Connected: " + resp.publicKey.toString().slice(0, 8) + "...";
-                statusDiv.style.color = "#3fb950";
-                // هنا يمكنك إضافة كود إرسال العنوان للسيرفر
-            } catch (err) {
-                statusDiv.innerText = "Connection rejected by user.";
-                statusDiv.style.color = "#f85149";
-            }
-        } 
-        // 2. إذا لم نجد المحفظة (أنت في متصفح تيليجرام)، قم بالتحويل لمتصفح فانتوم
-        else {
-            statusDiv.innerText = "Redirecting to Phantom Browser...";
-            const currentUrl = window.location.href;
-            // هذا الرابط هو السحر الذي يفتح تطبيق فانتوم مباشرة
-            const deepLink = `https://phantom.app/ul/browse/${encodeURIComponent(currentUrl)}`;
-            window.location.href = deepLink;
-        }
+    // إعداد واجهة تيليجرام
+    if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
     }
 
-    connectBtn.addEventListener('click', connectWallet);
+    // 1. الاتصال المباشر
+    directBtn.addEventListener('click', async () => {
+        if (window.solana && window.solana.isPhantom) {
+            try {
+                statusLog.innerText = "Connecting to Phantom...";
+                const res = await window.solana.connect();
+                statusLog.innerText = "✅ Connected: " + res.publicKey.toString().slice(0, 6) + "..." + res.publicKey.toString().slice(-4);
+                statusLog.style.color = "#4ade80";
+            } catch (err) {
+                statusLog.innerText = "❌ User cancelled connection.";
+                statusLog.style.color = "#f87171";
+            }
+        } else {
+            statusLog.innerText = "⚠️ No direct wallet found. Tap 'Open in Phantom App' below.";
+            statusLog.style.color = "#fbbf24";
+        }
+    });
+
+    // 2. الفتح الإجباري داخل تطبيق فانتوم (Deep Link متوافق مع تيليجرام)
+    phantomBtn.addEventListener('click', () => {
+        const targetUrl = window.location.href.split('?')[0]; // الرابط الحالي النظيف
+        const phantomDeepLink = `https://phantom.app/ul/browse/${encodeURIComponent(targetUrl)}`;
+        
+        statusLog.innerText = "Redirecting to Phantom Mobile...";
+        
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openLink) {
+            window.Telegram.WebApp.openLink(phantomDeepLink);
+        } else {
+            window.location.href = phantomDeepLink;
+        }
+    });
 </script>
 
 </body>
