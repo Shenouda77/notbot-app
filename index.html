@@ -1,90 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NOTBOT Solana Reclaimer</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
-  <style>
-    body {
-      background-color: #0f172a;
-      color: #f8fafc;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      text-align: center;
-      padding: 24px 16px;
-      margin: 0;
-    }
-    .card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    }
-    h2 { color: #38bdf8; margin: 0 0 10px 0; font-size: 22px; }
-    p { color: #94a3b8; font-size: 14px; line-height: 1.5; }
-    .btn {
-      background: linear-gradient(135deg, #38bdf8, #818cf8);
-      color: #0f172a;
-      border: none;
-      font-weight: 700;
-      font-size: 16px;
-      padding: 14px 20px;
-      border-radius: 12px;
-      width: 100%;
-      cursor: pointer;
-      margin-top: 20px;
-      transition: 0.2s ease;
-    }
-    .btn:active { transform: scale(0.98); }
-    .status-box {
-      margin-top: 15px;
-      padding: 12px;
-      background: #0f172a;
-      border-radius: 8px;
-      font-family: monospace;
-      font-size: 12px;
-      word-break: break-all;
-      color: #a5f3fc;
-      display: none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>$NOTBOT Reclaimer</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #0b0e14;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 15px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .card {
+            background: #151a23;
+            border: 1px solid #232d3f;
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        h2 { margin: 0 0 10px; font-size: 20px; color: #38bdf8; }
+        p { color: #94a3b8; font-size: 13px; line-height: 1.5; margin-bottom: 20px; }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            box-sizing: border-box;
+        }
+        .btn-connect { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; }
+        .btn-phantom { background: #ab9ff2; color: #1a1b23; }
+        .status-box {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #0b0e14;
+            font-size: 12px;
+            color: #64748b;
+            word-break: break-all;
+        }
+    </style>
 </head>
 <body>
-  <div class="card">
-    <h2>🤖 $NOTBOT Reclaimer</h2>
-    <p>Connect your Solana wallet (Phantom / Solflare) to scan and reclaim locked SOL rent.</p>
-    
-    <button class="btn" id="connectBtn" onclick="connectWallet()">🔗 Connect Wallet</button>
-    <div id="status" class="status-box"></div>
-  </div>
 
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
+<div class="card">
+    <h2>🤖 مُسترجع إيجار NOTBOT$</h2>
+    <p>قم بتوصيل محفظتك لاسترداد SOL المقفل من الحسابات الفارغة.</p>
 
-    async function connectWallet() {
-      const statusDiv = document.getElementById('status');
-      statusDiv.style.display = 'block';
+    <button class="btn btn-connect" id="directConnect">⚡ اتصال مباشر</button>
+    <button class="btn btn-phantom" id="openPhantom">🟣 فتح داخل تطبيق Phantom</button>
 
-      const provider = window.solana || window.solflare;
+    <div class="status-box" id="statusLog">جاهز للاتصال...</div>
+</div>
 
-      if (provider) {
-        try {
-          const resp = await provider.connect();
-          const walletAddress = resp.publicKey.toString();
-          statusDiv.innerText = "Connected: " + walletAddress;
-          
-          tg.sendData(JSON.stringify({ action: "wallet_connected", wallet: walletAddress }));
-          setTimeout(() => tg.close(), 1000);
-        } catch (err) {
-          statusDiv.innerText = "Connection error: " + err.message;
-        }
-      } else {
-        statusDiv.innerText = "No Solana wallet detected. Please open within Phantom/Solflare in-app browser.";
-      }
+<script>
+    const directBtn = document.getElementById('directConnect');
+    const phantomBtn = document.getElementById('openPhantom');
+    const statusLog = document.getElementById('statusLog');
+
+    if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
     }
-  </script>
+
+    directBtn.addEventListener('click', async () => {
+        if (window.solana && window.solana.isPhantom) {
+            try {
+                statusLog.innerText = "جاري الاتصال بمحفظة Phantom...";
+                const res = await window.solana.connect();
+                statusLog.innerText = "✅ متصل: " + res.publicKey.toString().slice(0, 6) + "..." + res.publicKey.toString().slice(-4);
+                statusLog.style.color = "#4ade80";
+            } catch (err) {
+                statusLog.innerText = "❌ تم إلغاء الاتصال من المستخدم.";
+                statusLog.style.color = "#f87171";
+            }
+        } else {
+            statusLog.innerText = "⚠️ لم يتم العثور على محفظة مباشرة. اضغط على الزر البنفسجي بالأسفل.";
+            statusLog.style.color = "#fbbf24";
+        }
+    });
+
+    phantomBtn.addEventListener('click', () => {
+        const targetUrl = window.location.href.split('?')[0];
+        const phantomDeepLink = `https://phantom.app/ul/browse/${encodeURIComponent(targetUrl)}`;
+        
+        statusLog.innerText = "جاري التحويل إلى تطبيق Phantom...";
+        
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openLink) {
+            window.Telegram.WebApp.openLink(phantomDeepLink);
+        } else {
+            window.location.href = phantomDeepLink;
+        }
+    });
+</script>
+
 </body>
 </html>
