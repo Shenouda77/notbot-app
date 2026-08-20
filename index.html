@@ -60,9 +60,9 @@
 
 <div class="card">
     <h2>🤖 $NOTBOT Reclaimer</h2>
-    <p>Connect your wallet to scan and reclaim locked SOL rent.</p>
+    <p>Connect your Solana wallet to scan and reclaim locked SOL rent.</p>
 
-    <button class="btn btn-connect" id="directConnect">⚡ Direct Connect</button>
+    <button class="btn btn-connect" id="directConnect">⚡ Connect Wallet</button>
     <button class="btn btn-phantom" id="openPhantom">🟣 Open in Phantom App</button>
 
     <div class="status-box" id="statusLog">Ready to connect...</div>
@@ -78,7 +78,7 @@
         window.Telegram.WebApp.expand();
     }
 
-    directBtn.addEventListener('click', async () => {
+    async function executeConnect() {
         if (window.solana && window.solana.isPhantom) {
             try {
                 statusLog.innerText = "Connecting to Phantom...";
@@ -86,25 +86,35 @@
                 statusLog.innerText = "✅ Connected: " + res.publicKey.toString().slice(0, 6) + "..." + res.publicKey.toString().slice(-4);
                 statusLog.style.color = "#4ade80";
             } catch (err) {
-                statusLog.innerText = "❌ Connection cancelled.";
+                statusLog.innerText = "❌ Connection cancelled by user.";
                 statusLog.style.color = "#f87171";
             }
         } else {
-            statusLog.innerText = "⚠️ No direct wallet found. Tap 'Open in Phantom App' below.";
+            statusLog.innerText = "⚠️ Please open via Phantom App button below.";
             statusLog.style.color = "#fbbf24";
         }
-    });
+    }
+
+    directBtn.addEventListener('click', executeConnect);
 
     phantomBtn.addEventListener('click', () => {
-        const targetUrl = window.location.href.split('?')[0];
-        const phantomDeepLink = `https://phantom.app/ul/browse/${encodeURIComponent(targetUrl)}`;
+        const cleanUrl = "https://shenouda77.github.io/notbot-app/";
+        // إضافة ref لتفعيل متصفح فانتوم الداخلي
+        const phantomDeepLink = `https://phantom.app/ul/browse/${encodeURIComponent(cleanUrl)}?ref=${encodeURIComponent(cleanUrl)}`;
         
-        statusLog.innerText = "Redirecting to Phantom Mobile...";
+        statusLog.innerText = "Opening Phantom Browser...";
         
         if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openLink) {
             window.Telegram.WebApp.openLink(phantomDeepLink);
         } else {
             window.location.href = phantomDeepLink;
+        }
+    });
+
+    // محاولة اتصال تلقائي فور فتح الصفحة داخل متصفح فانتوم
+    window.addEventListener('load', () => {
+        if (window.solana && window.solana.isPhantom) {
+            setTimeout(executeConnect, 500);
         }
     });
 </script>
