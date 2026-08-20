@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>$NOTBOT Reclaimer</title>
+    <title>$NOTBOT Multi-Wallet Reclaimer</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
@@ -30,21 +30,12 @@
         }
         h2 { margin: 0 0 8px; font-size: 20px; color: #38bdf8; }
         p { color: #94a3b8; font-size: 13px; line-height: 1.5; margin-bottom: 20px; }
-        input {
-            width: 100%;
-            padding: 12px;
-            background: #0b0e14;
-            border: 1px solid #334155;
-            border-radius: 10px;
-            color: #fff;
-            font-size: 13px;
-            box-sizing: border-box;
-            margin-bottom: 12px;
-            text-align: center;
-        }
-        input:focus { outline: none; border-color: #38bdf8; }
-        .btn {
-            display: block;
+        
+        .wallet-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
             width: 100%;
             padding: 12px;
             margin: 8px 0;
@@ -53,13 +44,17 @@
             font-size: 14px;
             font-weight: bold;
             cursor: pointer;
-            box-sizing: border-box;
+            transition: 0.2s;
         }
-        .btn-scan { background: linear-gradient(135deg, #38bdf8, #2563eb); color: white; }
         .btn-phantom { background: #ab9ff2; color: #1a1b23; }
+        .btn-solflare { background: #fc7430; color: #ffffff; }
+        .btn-backpack { background: #e33e38; color: #ffffff; }
+        .btn-okx { background: #27272a; color: #ffffff; border: 1px solid #3f3f46; }
+        .btn-direct { background: linear-gradient(135deg, #38bdf8, #2563eb); color: white; margin-top: 15px; }
+
         .status-box {
             margin-top: 15px;
-            padding: 12px;
+            padding: 10px;
             border-radius: 8px;
             background: #0b0e14;
             font-size: 12px;
@@ -72,23 +67,21 @@
 
 <div class="card">
     <h2>🤖 $NOTBOT Reclaimer</h2>
-    <p>Reclaim trapped SOL rent from closed token accounts.</p>
+    <p>Select your Solana wallet to connect and reclaim locked SOL:</p>
 
-    <!-- خانة لصق العنوان مباشرة -->
-    <input type="text" id="walletInput" placeholder="Paste Solana Wallet Address" />
+    <!-- أزرار المحافظ المتعددة -->
+    <button class="wallet-btn btn-phantom" onclick="openWallet('phantom')">🟣 Phantom</button>
+    <button class="wallet-btn btn-solflare" onclick="openWallet('solflare')">🟠 Solflare</button>
+    <button class="wallet-btn btn-backpack" onclick="openWallet('backpack')">🔴 Backpack</button>
+    <button class="wallet-btn btn-okx" onclick="openWallet('okx')">⚫ OKX Wallet</button>
 
-    <button class="btn btn-scan" id="scanBtn">🔍 Scan Recoverable SOL</button>
-    <button class="btn btn-phantom" id="openPhantomBtn">🟣 Open In Phantom App</button>
+    <button class="wallet-btn btn-direct" onclick="checkInjectedWallet()">⚡ Direct Connect (In-App)</button>
 
-    <div class="status-box" id="statusLog">Ready to scan...</div>
+    <div class="status-box" id="statusLog">Ready to connect...</div>
 </div>
 
 <script>
-    const walletInput = document.getElementById('walletInput');
-    const scanBtn = document.getElementById('scanBtn');
-    const openPhantomBtn = document.getElementById('openPhantomBtn');
     const statusLog = document.getElementById('statusLog');
-
     const APP_URL = "https://shenouda77.github.io/notbot-app/";
 
     if (window.Telegram && window.Telegram.WebApp) {
@@ -96,39 +89,65 @@
         window.Telegram.WebApp.expand();
     }
 
-    // زر الفحص المباشر
-    scanBtn.addEventListener('click', () => {
-        const address = walletInput.value.trim();
-        if (!address || address.length < 32 || address.length > 44) {
-            statusLog.innerText = "⚠️ Please enter a valid Solana address.";
-            statusLog.style.color = "#fbbf24";
-            return;
+    // فتح الرابط داخل المتصفح الداخلي لكل محفظة
+    function openWallet(type) {
+        let deepLink = "";
+        const encodedUrl = encodeURIComponent(APP_URL);
+
+        switch (type) {
+            case 'phantom':
+                deepLink = `https://phantom.app/ul/browse/${encodedUrl}?ref=${encodedUrl}`;
+                break;
+            case 'solflare':
+                deepLink = `https://solflare.com/ul/v1/browse/${encodedUrl}?ref=${encodedUrl}`;
+                break;
+            case 'backpack':
+                deepLink = `https://backpack.app/ul/browse/${encodedUrl}`;
+                break;
+            case 'okx':
+                deepLink = `okx://wallet/dapp/url?dappUrl=${encodedUrl}`;
+                break;
         }
 
-        statusLog.innerText = "⏳ Scanning blockchain for empty token accounts...";
-        statusLog.style.color = "#38bdf8";
+        statusLog.innerText = `Opening ${type.toUpperCase()}...`;
 
-        // إرسال العنوان للبوت في تيليجرام لمعالجته
-        setTimeout(() => {
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
-                window.Telegram.WebApp.sendData(JSON.stringify({
-                    action: "scan_wallet",
-                    address: address
-                }));
-            } else {
-                statusLog.innerText = "✅ Address validated: " + address.slice(0, 6) + "..." + address.slice(-4);
-                statusLog.style.color = "#4ade80";
-            }
-        }, 800);
-    });
-
-    // زر التحويل المباشر لمتصفح فانتوم
-    openPhantomBtn.addEventListener('click', () => {
-        const phantomUrl = `https://phantom.app/ul/browse/${encodeURIComponent(APP_URL)}?ref=${encodeURIComponent(APP_URL)}`;
         if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openLink) {
-            window.Telegram.WebApp.openLink(phantomUrl);
+            window.Telegram.WebApp.openLink(deepLink);
         } else {
-            window.location.href = phantomUrl;
+            window.location.href = deepLink;
+        }
+    }
+
+    // التحقق من المحفظة إذا فُتحت الصفحة بالفعل داخل متصفح أي محفظة
+    async function checkInjectedWallet() {
+        const provider = window.phantom?.solana || window.solflare || window.solana;
+        if (provider) {
+            try {
+                statusLog.innerText = "Connecting...";
+                const res = await provider.connect();
+                const pubKey = (res.publicKey || provider.publicKey).toString();
+                statusLog.innerText = "✅ Connected: " + pubKey.slice(0, 6) + "..." + pubKey.slice(-4);
+                statusLog.style.color = "#4ade80";
+
+                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
+                    window.Telegram.WebApp.sendData(JSON.stringify({
+                        action: "wallet_connected",
+                        address: pubKey
+                    }));
+                }
+            } catch (e) {
+                statusLog.innerText = "❌ Connection cancelled.";
+                statusLog.style.color = "#f87171";
+            }
+        } else {
+            statusLog.innerText = "⚠️ Please choose a wallet button above to open its app.";
+            statusLog.style.color = "#fbbf24";
+        }
+    }
+
+    window.addEventListener('load', () => {
+        if (window.phantom?.solana || window.solflare || window.solana) {
+            checkInjectedWallet();
         }
     });
 </script>
