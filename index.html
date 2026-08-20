@@ -1,101 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>$NOTBOT SOL Reclaimer</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #0b0e14;
-            color: #ffffff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 15px;
-            box-sizing: border-box;
-            text-align: center;
-        }
-        .card {
-            background: #151a23;
-            border: 1px solid #232d3f;
-            border-radius: 16px;
-            padding: 24px;
-            width: 100%;
-            max-width: 380px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-        }
-        h2 { margin: 0 0 8px; font-size: 20px; color: #38bdf8; }
-        p { color: #94a3b8; font-size: 13px; line-height: 1.5; margin-bottom: 20px; }
-        
-        .input-box {
-            width: 100%;
-            padding: 14px;
-            background: #0b0e14;
-            border: 1px solid #334155;
-            border-radius: 10px;
-            color: #fff;
-            font-size: 13px;
-            box-sizing: border-box;
-            margin-bottom: 12px;
-            text-align: center;
-        }
-        .input-box:focus { outline: none; border-color: #38bdf8; }
-        
-        .btn-submit {
-            display: block;
-            width: 100%;
-            padding: 14px;
-            border-radius: 10px;
-            border: none;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            background: linear-gradient(135deg, #38bdf8, #2563eb);
-            color: white;
-            box-sizing: border-box;
-        }
-        .btn-submit:active { transform: scale(0.98); }
-
-        .wallets-supported {
-            margin-top: 15px;
-            font-size: 12px;
-            color: #64748b;
-        }
-        .status-box {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 8px;
-            background: #0b0e14;
-            font-size: 12px;
-            color: #94a3b8;
-        }
-    </style>
-</head>
-<body>
-
-<div class="card">
-    <h2>🤖 $NOTBOT SOL Reclaimer</h2>
-    <p>Paste your Solana wallet address (Public Key) to scan and reclaim trapped rent SOL.</p>
-
-    <input type="text" id="walletAddress" class="input-box" placeholder="Paste Solana Address (e.g. 7xKX...)" />
-
-    <button class="btn-submit" id="submitBtn">⚡ Scan & Reclaim</button>
-
-    <div class="wallets-supported">
-        Works with: Phantom • Solflare • Backpack • OKX
-    </div>
-
-    <div class="status-box" id="statusLog">Ready to scan...</div>
-</div>
-
 <script>
     const walletInput = document.getElementById('walletAddress');
     const submitBtn = document.getElementById('submitBtn');
     const statusLog = document.getElementById('statusLog');
+
+    const BOT_USERNAME = "NotBotReclaimerBot"; // ضع يوزر نيم البوت الخاص بك هنا بدون @
 
     if (window.Telegram && window.Telegram.WebApp) {
         window.Telegram.WebApp.ready();
@@ -106,27 +14,23 @@
         const address = walletInput.value.trim();
 
         if (!address || address.length < 32 || address.length > 44) {
-            statusLog.innerText = "⚠️ Please enter a valid Solana address.";
+            statusLog.innerText = "⚠️ يرجى إدخال عنوان محفظة سولانا صحيح.";
             statusLog.style.color = "#fbbf24";
             return;
         }
 
-        statusLog.innerText = "⏳ Scanning closed token accounts on Solana...";
+        statusLog.innerText = "⏳ جاري إرسال العنوان للبوت...";
         statusLog.style.color = "#38bdf8";
 
-        // إرسال العنوان مباشرة إلى البوت في الشات
-        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
-            window.Telegram.WebApp.sendData(JSON.stringify({
-                action: "scan_wallet",
-                address: address
-            }));
+        // التوجيه الفوري للشات مع تمرير العنوان في الرابط
+        const targetUrl = `https://t.me/${BOT_USERNAME}?start=scan_${address}`;
+        
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) {
+            window.Telegram.WebApp.openTelegramLink(targetUrl);
         } else {
-            statusLog.innerText = "✅ Address validated: " + address.slice(0, 6) + "..." + address.slice(-4);
-            statusLog.style.color = "#4ade80";
+            window.location.href = targetUrl;
         }
     });
 </script>
 
-</body>
-</html>
 
