@@ -3,159 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>$NOTBOT Solana Reclaimer</title>
+    <title>$NOTBOT Reclaimer</title>
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
         body {
             background-color: #0d1117;
-            color: #f0f6fc;
+            color: #ffffff;
+            font-family: sans-serif;
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
             text-align: center;
         }
-        .card {
+        .container {
             background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 16px;
-            padding: 24px;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
             max-width: 400px;
-            width: 100%;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-        }
-        h1 {
-            font-size: 1.5rem;
-            color: #58a6ff;
-            margin-bottom: 12px;
-        }
-        p {
-            font-size: 0.9rem;
-            color: #8b949e;
-            margin-bottom: 20px;
-            line-height: 1.5;
+            border: 1px solid #30363d;
         }
         .btn {
-            background: linear-gradient(135deg, #ab9ff2, #7e6ce2);
-            color: #000;
-            font-weight: 700;
-            font-size: 1rem;
+            background: #7e6ce2;
+            color: white;
             border: none;
+            padding: 15px;
             border-radius: 12px;
-            padding: 14px 20px;
             width: 100%;
+            font-weight: bold;
+            margin-top: 10px;
             cursor: pointer;
-            transition: opacity 0.2s ease;
-            margin-bottom: 12px;
         }
-        .btn:active {
-            opacity: 0.8;
-        }
-        .btn-secondary {
-            background: #21262d;
-            color: #c9d1d9;
-            border: 1px solid #30363d;
-        }
-        .status-box {
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 12px;
-            font-size: 0.85rem;
-            color: #e6edf3;
-            word-break: break-all;
-            margin-top: 15px;
-            min-height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        #status {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #8b949e;
         }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h1>⚡ $NOTBOT Reclaimer</h1>
-        <p>Connect your Solana wallet to scan and recover trapped SOL from closed token accounts.</p>
+<div class="container">
+    <h2>⚡ $NOTBOT Reclaimer</h2>
+    <p>Connect your wallet to scan empty token accounts.</p>
+    
+    <button class="btn" onclick="connectPhantom()">🔗 Connect Phantom Wallet</button>
+    <button class="btn" style="background:#21262d;" onclick="manualAddress()">📝 Enter Address Manually</button>
+    
+    <div id="status">Ready</div>
+</div>
 
-        <!-- زر الاتصال المباشر -->
-        <button class="btn" onclick="connectWallet()">🔗 Connect Phantom Wallet</button>
+<script>
+    const tg = window.Telegram ? window.Telegram.WebApp : null;
+    if (tg) {
+        tg.ready();
+        tg.expand();
+    }
+
+    function setStatus(text) {
+        document.getElementById('status').innerText = text;
+    }
+
+    async function connectPhantom() {
+        setStatus("Opening Phantom...");
         
-        <!-- زر بديل للإرسال الفوري للتيليجرام -->
-        <button class="btn btn-secondary" onclick="pasteAddressPrompt()">📝 Enter Address Manually</button>
-
-        <div class="status-box" id="statusBox">
-            Status: Ready to connect
-        </div>
-    </div>
-
-    <script>
-        const tg = window.Telegram ? window.Telegram.WebApp : null;
+        // استخدام Deep Link لفتح التطبيق على الموبايل
+        const currentUrl = encodeURIComponent(window.location.href);
+        const phantomDeepLink = "https://phantom.app/ul/browse/" + currentUrl;
+        
         if (tg) {
-            tg.ready();
-            tg.expand();
+            tg.openLink(phantomDeepLink);
+        } else {
+            window.location.href = phantomDeepLink;
         }
+    }
 
-        const statusBox = document.getElementById('statusBox');
-
-        function setStatus(text) {
-            statusBox.innerText = text;
+    function manualAddress() {
+        const address = prompt("Paste your Solana Address:");
+        if (address && address.length >= 32) {
+            sendToBot(address.trim());
         }
+    }
 
-        async function connectWallet() {
-            // 1. إذا كان المستخدم يفتح من متصفح كمبيوتر به إضافة Phantom
-            if (window.solana && window.solana.isPhantom) {
-                setStatus("Extension found. Requesting connection...");
-                try {
-                    const resp = await window.solana.connect();
-                    const pubKey = resp.publicKey.toString();
-                    setStatus("Connected: " + pubKey);
-                    
-                    if (tg) {
-                        tg.sendData(pubKey);
-                    }
-                } catch (err) {
-                    setStatus("Connection cancelled: " + err.message);
-                }
-                return;
-            }
-
-            // 2. إذا كان المستخدم داخل تطبيق تيليجرام الموبايل (استخدام Deep Link)
-            setStatus("Redirecting to Phantom Mobile App...");
-            
-            const currentUrl = encodeURIComponent(window.location.href);
-            const refUrl = encodeURIComponent(window.location.origin);
-            const phantomDeepLink = "https://phantom.app/ul/browse/" + currentUrl + "?ref=" + refUrl;
-
-            if (tg && tg.openLink) {
-                tg.openLink(phantomDeepLink);
-            } else {
-                window.location.href = phantomDeepLink;
-            }
+    function sendToBot(address) {
+        setStatus("Submitting address...");
+        if (tg) {
+            // إرسال البيانات وإغلاق التطبيق فوراً
+            tg.sendData(address);
+            tg.close();
+        } else {
+            alert("Address: " + address);
         }
+    }
+</script>
 
-        function pasteAddressPrompt() {
-            const address = prompt("Paste your Solana Public Key:");
-            if (address && address.trim().length >= 32) {
-                setStatus("Submitting address...");
-                if (tg) {
-                    tg.sendData(address.trim());
-                } else {
-                    alert("Address captured: " + address.trim());
-                }
-            } else if (address) {
-                alert("Invalid Solana address format.");
-            }
-        }
-    </script>
 </body>
 </html>
