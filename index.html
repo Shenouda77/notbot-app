@@ -4,43 +4,69 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>$NOTBOT Reclaimer</title>
-    <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
             background-color: #0d1117;
             color: #ffffff;
-            font-family: sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 15px;
+            box-sizing: border-box;
             text-align: center;
         }
         .container {
             background: #161b22;
-            padding: 30px;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 400px;
+            padding: 24px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 380px;
             border: 1px solid #30363d;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
         }
+        h2 { margin-top: 0; color: #58a6ff; font-size: 1.4rem; }
+        p { color: #8b949e; font-size: 0.9rem; margin-bottom: 20px; line-height: 1.4; }
+        .input-box {
+            width: 100%;
+            padding: 12px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 0.85rem;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            outline: none;
+        }
+        .input-box:focus { border-color: #58a6ff; }
         .btn {
-            background: #7e6ce2;
+            background: #238636;
             color: white;
             border: none;
-            padding: 15px;
-            border-radius: 12px;
+            padding: 14px;
+            border-radius: 10px;
             width: 100%;
             font-weight: bold;
-            margin-top: 10px;
+            font-size: 0.95rem;
             cursor: pointer;
+            transition: 0.2s;
+            margin-bottom: 10px;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-secondary {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
         }
         #status {
-            margin-top: 20px;
-            font-size: 0.9em;
-            color: #8b949e;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: #58a6ff;
+            min-height: 20px;
         }
     </style>
 </head>
@@ -48,10 +74,12 @@
 
 <div class="container">
     <h2>⚡ $NOTBOT Reclaimer</h2>
-    <p>Connect your wallet to scan empty token accounts.</p>
+    <p>Enter or connect your Solana wallet to scan and recover locked SOL rent.</p>
     
-    <button class="btn" onclick="connectPhantom()">🔗 Connect Phantom Wallet</button>
-    <button class="btn" style="background:#21262d;" onclick="manualAddress()">📝 Enter Address Manually</button>
+    <input type="text" id="walletInput" class="input-box" placeholder="Paste Solana Address (Base58)...">
+    
+    <button class="btn" onclick="submitWallet()">🚀 Scan & Recover Rent</button>
+    <button class="btn btn-secondary" onclick="connectPhantom()">🔗 Connect Phantom</button>
     
     <div id="status">Ready</div>
 </div>
@@ -63,42 +91,55 @@
         tg.expand();
     }
 
-    function setStatus(text) {
-        document.getElementById('status').innerText = text;
+    function setStatus(text, isError = false) {
+        const el = document.getElementById('status');
+        el.innerText = text;
+        el.style.color = isError ? "#f85149" : "#58a6ff";
     }
 
-    async function connectPhantom() {
-        setStatus("Opening Phantom...");
+    function submitWallet() {
+        const input = document.getElementById('walletInput');
+        const address = input.value.trim();
         
-        // استخدام Deep Link لفتح التطبيق على الموبايل
+        if (!address || address.length < 32 || address.length > 44) {
+            setStatus("❌ Invalid Solana address length!", true);
+            return;
+        }
+
+        setStatus("Submitting to NotBot...");
+
+        if (tg) {
+            try {
+                // محاولة الإرسال المباشر
+                tg.sendData(address);
+                tg.close();
+            } catch (e) {
+                // إذا فتحت من Inline Button، نوجه المستخدم للشات
+                fallbackToChat(address);
+            }
+        } else {
+            alert("Scanned Wallet: " + address);
+        }
+    }
+
+    function fallbackToChat(address) {
+        if (tg) {
+            tg.openTelegramLink(`https://t.me/NotBotReclaimBot?start=scan_${address}`);
+            tg.close();
+        }
+    }
+
+    function connectPhantom() {
         const currentUrl = encodeURIComponent(window.location.href);
         const phantomDeepLink = "https://phantom.app/ul/browse/" + currentUrl;
-        
         if (tg) {
             tg.openLink(phantomDeepLink);
         } else {
             window.location.href = phantomDeepLink;
         }
     }
-
-    function manualAddress() {
-        const address = prompt("Paste your Solana Address:");
-        if (address && address.length >= 32) {
-            sendToBot(address.trim());
-        }
-    }
-
-    function sendToBot(address) {
-        setStatus("Submitting address...");
-        if (tg) {
-            // إرسال البيانات وإغلاق التطبيق فوراً
-            tg.sendData(address);
-            tg.close();
-        } else {
-            alert("Address: " + address);
-        }
-    }
 </script>
 
 </body>
 </html>
+
