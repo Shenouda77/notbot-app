@@ -6,142 +6,50 @@
     <title>NotBot SOL Reclaimer</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-        body {
-            background-color: #0b0e14;
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-            text-align: center;
-        }
-        .card {
-            background: #151a23;
-            border: 1px solid #232a3b;
-            border-radius: 16px;
-            padding: 24px;
-            width: 100%;
-            max-width: 380px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-        }
-        h1 {
-            font-size: 22px;
-            margin-bottom: 12px;
-            color: #ab9ff2;
-        }
-        p {
-            font-size: 14px;
-            color: #94a3b8;
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-        .stats {
-            background: #0b0e14;
-            border-radius: 10px;
-            padding: 12px;
-            margin-bottom: 20px;
-            border: 1px solid #1f293d;
-        }
-        .stat-val {
-            font-size: 18px;
-            font-weight: bold;
-            color: #14f195;
-        }
-        .btn {
-            background: linear-gradient(135deg, #ab9ff2 0%, #7d6ee8 100%);
-            color: #ffffff;
-            border: none;
-            border-radius: 12px;
-            padding: 14px;
-            font-size: 16px;
-            font-weight: bold;
-            width: 100%;
-            cursor: pointer;
-            transition: transform 0.1s ease, opacity 0.2s;
-            margin-bottom: 10px;
-        }
-        .btn:active {
-            transform: scale(0.98);
-        }
-        .btn-secondary {
-            background: #1f293d;
-            color: #cbd5e1;
-        }
-        .footer {
-            margin-top: 15px;
-            font-size: 12px;
-            color: #64748b;
-        }
+        body { background-color: #0b0e14; color: #ffffff; display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: sans-serif; }
+        .card { background: #151a23; border: 1px solid #232a3b; border-radius: 16px; padding: 24px; width: 90%; max-width: 380px; text-align: center; }
+        .btn { background: #ab9ff2; color: #000; border: none; border-radius: 12px; padding: 15px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
-
     <div class="card">
-        <h1>تأكيد استرداد الرنت ⚡</h1>
-        <p>استرداد رسوم سولانا للحسابات الفارغة بضغطة زر واحدة وآمان تام.</p>
-
-        <div class="stats">
-            <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">المبلغ المتاح للاسترداد</div>
-            <div class="stat-val" id="refundAmount">0.01020 SOL</div>
-        </div>
-
-        <button class="btn" id="actionBtn" onclick="handleClaim()">توقيع واسترداد عبر Phantom</button>
-        <button class="btn btn-secondary" onclick="openDirectPhantom()">فتح في تطبيق Phantom ↗</button>
-
-        <div class="footer">
-            🔒 لا يتطلب إدخال المفتاح الخاص نهائياً
-        </div>
+        <h1>استرداد الرنت ⚡</h1>
+        <p id="status">جاري البحث عن المحفظة...</p>
+        <button class="btn" id="claimBtn" onclick="connectAndSign()">الاتصال والتوقيع</button>
     </div>
 
     <script>
-        // إعداد بيئة تيليجرام
-        if (window.Telegram && window.Telegram.WebApp) {
-            window.Telegram.WebApp.ready();
-            window.Telegram.WebApp.expand();
-        }
-
-        // قراءة المتغيرات من الرابط إن وجدت
-        const urlParams = new URLSearchParams(window.location.search);
-        const walletParam = urlParams.get('wallet');
-
-        function isPhantomInstalled() {
-            return window.solana && window.solana.isPhantom;
-        }
-
-        async function handleClaim() {
-            // 1. إذا كان المتصفح يدعم فانتوم مباشرة
-            if (isPhantomInstalled()) {
-                try {
-                    const resp = await window.solana.connect();
-                    alert("تم الاتصال بالمحفظة بنجاح: " + resp.publicKey.toString().slice(0, 6) + "...");
-                } catch (err) {
-                    alert("تم إلغاء الاتصال من قبل المستخدم.");
-                }
-            } else {
-                // 2. إذا كان داخل WebView التيليجرام: التوجيه عبر Deep Link
-                openDirectPhantom();
+        // 1. انتظر حتى تحمل المحفظة في المتصفح
+        async function getProvider() {
+            for (let i = 0; i < 20; i++) {
+                if (window.solana && window.solana.isPhantom) return window.solana;
+                await new Promise(resolve => setTimeout(resolve, 200));
             }
+            return null;
         }
 
-        function openDirectPhantom() {
-            const currentUrl = encodeURIComponent(window.location.href);
-            // فتح الصفحة داخل متصفح Phantom الداخلي تلقائياً
-            const phantomDeepLink = `https://phantom.app/ul/browse/${currentUrl}?ref=${encodeURIComponent(window.location.host)}`;
-            
-            if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.openLink(phantomDeepLink);
-            } else {
-                window.location.href = phantomDeepLink;
+        async function connectAndSign() {
+            const status = document.getElementById("status");
+            const provider = await getProvider();
+
+            if (!provider) {
+                status.innerText = "⚠️ لم يتم العثور على Phantom. تأكد أنك في متصفح فانتوم.";
+                // إعادة التوجيه كحل أخير
+                window.location.href = "https://phantom.app/ul/browse/" + encodeURIComponent(window.location.href);
+                return;
+            }
+
+            try {
+                status.innerText = "جاري الاتصال...";
+                const resp = await provider.connect();
+                status.innerText = "✅ متصل: " + resp.publicKey.toString().slice(0, 6) + "...";
+                alert("تم الاتصال بنجاح! الآن سيتم إرسال طلب التوقيع.");
+                // هنا سيأتي كود التوقيع الفعلي لاحقاً
+            } catch (err) {
+                status.innerText = "❌ تم رفض الاتصال.";
             }
         }
     </script>
 </body>
 </html>
+
