@@ -1,20 +1,160 @@
-function openPhantomDirectly() {
-    const rawUrl = "https://shenouda77.github.io/notbot-app/";
-    const encodedUrl = encodeURIComponent(rawUrl);
-    
-    // بروتوكول فانتوم المباشر لتشغيل المتصفح الداخلي فوراً
-    const phantomAppUri = "phantom://browse/" + encodedUrl;
-    const phantomUniversal = "https://phantom.app/ul/browse/" + encodedUrl + "?ref=" + encodeURIComponent("https://shenouda77.github.io");
-
-    // محاولة الفتح عبر البروتوكول المباشر أولاً
-    window.location.href = phantomAppUri;
-
-    // في حال عدم الاستجابة خلال ثانية، التوجيه عبر الرابط العام
-    setTimeout(() => {
-        if (window.Telegram && window.Telegram.WebApp) {
-            window.Telegram.WebApp.openLink(phantomUniversal);
-        } else {
-            window.location.href = phantomUniversal;
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotBot SOL Reclaimer</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
-    }, 1000);
-}
+        body {
+            background-color: #0b0e14;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            text-align: center;
+        }
+        .card {
+            background: #151a23;
+            border: 1px solid #232a3b;
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        h1 {
+            font-size: 22px;
+            margin-bottom: 12px;
+            color: #ab9ff2;
+        }
+        p {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .stats {
+            background: #0b0e14;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #1f293d;
+        }
+        .stat-val {
+            font-size: 18px;
+            font-weight: bold;
+            color: #14f195;
+        }
+        .btn {
+            background: linear-gradient(135deg, #ab9ff2 0%, #7d6ee8 100%);
+            color: #0b0e14;
+            border: none;
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            margin-bottom: 12px;
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
+        .status-box {
+            font-size: 13px;
+            color: #38bdf8;
+            margin-top: 10px;
+            min-height: 20px;
+        }
+        .footer {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>تأكيد استرداد الرنت ⚡</h1>
+        <p>استرداد رسوم سولانا للحسابات الفارغة بضغطة زر واحدة وآمان تام.</p>
+
+        <div class="stats">
+            <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">المبلغ المتاح للاسترداد</div>
+            <div class="stat-val">0.01020 SOL</div>
+        </div>
+
+        <button class="btn" id="actionBtn" onclick="handleWalletAction()">⚡ فتح وتأكيد في Phantom</button>
+        <div class="status-box" id="statusText"></div>
+
+        <div class="footer">
+            🔒 اتصال آمن ومباشر عبر شبكة سولانا
+        </div>
+    </div>
+
+    <script>
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand();
+        }
+
+        function checkInsidePhantom() {
+            return window.solana && window.solana.isPhantom;
+        }
+
+        async function handleWalletAction() {
+            const status = document.getElementById("statusText");
+
+            // 1. إذا فتحت الصفحة داخل متصفح Phantom
+            if (checkInsidePhantom()) {
+                try {
+                    status.innerText = "جاري الاتصال بالمحفظة...";
+                    const resp = await window.solana.connect();
+                    status.innerText = "✅ متصل: " + resp.publicKey.toString().slice(0, 4) + "..." + resp.publicKey.toString().slice(-4);
+                    alert("تم الاتصال بنجاح بمحفظة: " + resp.publicKey.toString());
+                } catch (err) {
+                    status.innerText = "❌ تم رفض الاتصال من المحفظة.";
+                }
+            } 
+            // 2. إذا ضغط الزر من داخل التيليجرام: فتح متصفح فانتوم مباشرة
+            else {
+                status.innerText = "جاري التحويل إلى متصفح Phantom...";
+                const targetUrl = "https://shenouda77.github.io/notbot-app/";
+                const encodedUrl = encodeURIComponent(targetUrl);
+                const phantomUri = "phantom://browse/" + encodedUrl;
+                const phantomUniversal = "https://phantom.app/ul/browse/" + encodedUrl + "?ref=" + encodeURIComponent(window.location.origin);
+
+                window.location.href = phantomUri;
+
+                setTimeout(() => {
+                    if (window.Telegram && window.Telegram.WebApp) {
+                        window.Telegram.WebApp.openLink(phantomUniversal);
+                    } else {
+                        window.location.href = phantomUniversal;
+                    }
+                }, 800);
+            }
+        }
+
+        // فحص تلقائي فور تحميل الصفحة داخل محفظة فانتوم
+        window.addEventListener("load", () => {
+            setTimeout(() => {
+                if (checkInsidePhantom()) {
+                    document.getElementById("actionBtn").innerText = "تأكيد واسترداد الرنت الآن";
+                    document.getElementById("statusText").innerText = "أنت الآن داخل فانتوم، اضغط للتأكيد.";
+                }
+            }, 400);
+        });
+    </script>
+</body>
+</html>
